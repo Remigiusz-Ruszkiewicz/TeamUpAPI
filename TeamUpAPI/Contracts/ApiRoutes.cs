@@ -23,6 +23,10 @@ namespace TeamUpAPI.Contracts
 
             public const string DeleteUser = Base + "User/{id}";
         }
+        public static class Auth
+        {
+            public const string Login = Base + "Login";
+        }
 
     }
 }

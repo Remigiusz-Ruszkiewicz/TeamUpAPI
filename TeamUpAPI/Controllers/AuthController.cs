@@ -10,34 +10,37 @@ using TeamUpAPI.Services;
 
 namespace TeamUpAPI.Controllers
 {
+    /// <summary>
+    /// Authorization Controller
+    /// </summary>
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly DataContext _context;
-
-        public AuthController(ITokenService tokenService, DataContext dbcontext)
+        /// <summary>
+        /// Base Constructor For Authorization Controller
+        /// </summary>
+        /// <param name="tokenService"></param>
+        public AuthController(ITokenService tokenService)
         {
             TokenService = tokenService;
-            _context = dbcontext;
         }
 
-        public ITokenService TokenService { get; }
-
+        private ITokenService TokenService { get; }
+        /// <summary>
+        /// Login and get token
+        /// </summary>
         [AllowAnonymous]
         [HttpPost(ApiRoutes.Auth.Login)]
-        public async Task<ActionResult<AuthResponse>> Authenticate([FromBody] AuthRequest request)
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] AuthRequest request)
         {
-            var userInDb = _context.Users.FirstOrDefault(u => u.Email == request.Email && u.Password == request.Password);
-            if (userInDb is null)
-                return Unauthorized();
-            var accessToken = TokenService.CreateToken(userInDb);
-            await _context.SaveChangesAsync();
-            return Ok(new AuthResponse
+            AuthResponse? authResponse = await TokenService.LoginAsync(request);
+            if (authResponse != null)
             {
-                Username = userInDb.Username,
-                Email = userInDb.Email,
-                Token = accessToken,
-            });
+                return Ok(authResponse);
+            }
+            else
+            {
+                return Unauthorized();
+            }
         }
     }
 }

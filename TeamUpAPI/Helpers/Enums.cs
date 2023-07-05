@@ -19,9 +19,9 @@
         {
             Ok = 200,
             Created = 201,
-            Error = 500,
-            NotFound = 404,
             BadRequest = 400,
+            NotFound = 404,
+            Error = 500,
             DBConnectionFailed = 503
         }
     }

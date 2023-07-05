@@ -1,9 +1,11 @@
-﻿using TeamUpAPI.Models;
+﻿using TeamUpAPI.Contracts.Requests;
+using TeamUpAPI.Contracts.Responses;
+using TeamUpAPI.Models;
 
 namespace TeamUpAPI.Services
 {
     public interface ITokenService
     {
-        public string CreateToken(User user);
+        public Task<AuthResponse?> LoginAsync(AuthRequest request);
     }
 }

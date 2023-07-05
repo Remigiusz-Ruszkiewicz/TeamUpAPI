@@ -14,7 +14,7 @@ namespace TeamUpAPI.Services
 
         public Task<ICollection<User>> GetUsersAsync();
 
-        public Task<User> GetUserByIdAsync(Guid id);
+        public Task<User?> GetUserByIdAsync(Guid id);
 
         public Task<ICollection<User>> GetUserFriendsAsync(Guid id);
     }

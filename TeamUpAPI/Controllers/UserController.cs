@@ -9,18 +9,26 @@ using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Models;
 using TeamUpAPI.Services;
 
-namespace workoutapp.Controllers
+namespace TeamUpAPI.Controllers
 {
-
+    /// <summary>
+    /// User Controller
+    /// </summary>
     public class UserController : Controller
     {
+        /// <summary>
+        /// Base Constructor for User Service
+        /// </summary>
+        /// <param name="userService"></param>
         public UserController(IUserService userService)
         {
             UserService = userService;
         }
 
-        public IUserService UserService { get; }
-
+        private IUserService UserService { get; }
+        /// <summary>
+        /// Add User
+        /// </summary>
         [AllowAnonymous]
         [HttpPost(ApiRoutes.User.AddUser)]
         public IActionResult AddUser([FromBody] AddUserRequest addUserRequest)
@@ -28,7 +36,9 @@ namespace workoutapp.Controllers
             var exerciseresult = UserService.AddUser(addUserRequest);
             return Ok(exerciseresult);
         }
-
+        /// <summary>
+        /// Get All Users List
+        /// </summary>
         [AllowAnonymous]
         [HttpGet(ApiRoutes.User.GetAllUsers)]
         public async Task<IActionResult> GetAllExercises()
@@ -36,7 +46,9 @@ namespace workoutapp.Controllers
             var exercises = await UserService.GetUsersAsync();
             return Ok(exercises);
         }
-
+        /// <summary>
+        /// Get User By Id
+        /// </summary>
         [AllowAnonymous]
         [HttpGet(ApiRoutes.User.GetUserById)]
         public async Task<IActionResult> GetUserById([FromRoute] Guid id)
@@ -48,19 +60,32 @@ namespace workoutapp.Controllers
             }
             return Ok(exercise);
         }
-
+        /// <summary>
+        /// Update User
+        /// </summary>
         [AllowAnonymous]
-        [HttpPost(ApiRoutes.User.UpdateUser)]
+        [HttpPut(ApiRoutes.User.UpdateUser)]
         public async Task<IActionResult> UpdateUser([FromBody] User user)
         {
             return Ok(await UserService.EditUser(user));
         }
-
+        /// <summary>
+        /// Delete User Based On Id
+        /// </summary>
         [AllowAnonymous]
         [HttpDelete(ApiRoutes.User.DeleteUser)]
-        public async Task<IActionResult> DeleteUser([FromRoute] Guid id)
+        public IActionResult DeleteUser([FromRoute] Guid id)
         {
             return Ok(UserService.DeleteUser(id));
+        }
+        /// <summary>
+        /// Get List Of User Friends Based On User Id
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet(ApiRoutes.User.GetUserFriends)]
+        public async Task<IActionResult> GetUserFriends([FromRoute] Guid id)
+        {
+            return Ok(await UserService.GetUserFriendsAsync(id));
         }
     }
 }

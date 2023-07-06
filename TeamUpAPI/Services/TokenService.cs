@@ -1,17 +1,27 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using TeamUpAPI.Contracts.Requests;
+using TeamUpAPI.Contracts.Responses;
+using TeamUpAPI.Data;
 using TeamUpAPI.Models;
 
 namespace TeamUpAPI.Services
 {
     public class TokenService : ITokenService
     {
+        public TokenService(DataContext dbcontext)
+        {
+            Dbcontext = dbcontext;
+        }
+        public DataContext Dbcontext { get; }
         private const int ExpirationMinutes = 30;
-        public string CreateToken(User user)
+
+        private static string CreateToken(User user)
         {
             var expiration = DateTime.UtcNow.AddMinutes(ExpirationMinutes);
             var token = CreateJwtToken(
@@ -23,7 +33,7 @@ namespace TeamUpAPI.Services
             return tokenHandler.WriteToken(token);
         }
 
-        private JwtSecurityToken CreateJwtToken(List<Claim> claims, SigningCredentials credentials,
+        private static JwtSecurityToken CreateJwtToken(List<Claim> claims, SigningCredentials credentials,
             DateTime expiration) =>
             new(
                 "apiWithAuthBackend",
@@ -33,11 +43,11 @@ namespace TeamUpAPI.Services
                 signingCredentials: credentials
             );
 
-        private List<Claim> CreateClaims(User user)
+        private static List<Claim> CreateClaims(User user)
         {
             try
             {
-                var claims = new List<Claim>
+                return new List<Claim>
                 {
                     new Claim(JwtRegisteredClaimNames.Sub, "TokenForTheApiWithAuth"),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -46,7 +56,6 @@ namespace TeamUpAPI.Services
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email)
                 };
-                return claims;
             }
             catch (Exception e)
             {
@@ -54,7 +63,7 @@ namespace TeamUpAPI.Services
                 throw;
             }
         }
-        private SigningCredentials CreateSigningCredentials()
+        private static SigningCredentials CreateSigningCredentials()
         {
             return new SigningCredentials(
                 new SymmetricSecurityKey(
@@ -62,6 +71,21 @@ namespace TeamUpAPI.Services
                 ),
                 SecurityAlgorithms.HmacSha256
             );
+        }
+
+        public async Task<AuthResponse?> LoginAsync(AuthRequest request)
+        {
+            var userInDb = Dbcontext.Users.FirstOrDefault(u => u.Email == request.Email && u.Password == request.Password);
+            if (userInDb is null)
+                return null;
+            var accessToken = CreateToken(userInDb);
+            await Dbcontext.SaveChangesAsync();
+            return new AuthResponse
+            {
+                Username = userInDb.Username,
+                Email = userInDb.Email,
+                Token = accessToken,
+            };
         }
     }
 }

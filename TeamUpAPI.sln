@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33712.159
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamUpAPI", "TeamUpAPI\TeamUpAPI.csproj", "{2FFBDAFF-2D48-4707-9376-F0D44A2256B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeamUpAPI", "TeamUpAPI\TeamUpAPI.csproj", "{2FFBDAFF-2D48-4707-9376-F0D44A2256B2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4687E036-C25C-467F-BB90-2C62554438E9}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

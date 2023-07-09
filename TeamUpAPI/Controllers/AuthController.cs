@@ -6,6 +6,7 @@ using TeamUpAPI.Contracts;
 using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
 using TeamUpAPI.Data;
+using TeamUpAPI.Models;
 using TeamUpAPI.Services;
 
 namespace TeamUpAPI.Controllers
@@ -33,6 +34,23 @@ namespace TeamUpAPI.Controllers
         public async Task<ActionResult<AuthResponse>> Login([FromBody] AuthRequest request)
         {
             AuthResponse? authResponse = await TokenService.LoginAsync(request);
+            if (authResponse != null)
+            {
+                return Ok(authResponse);
+            }
+            else
+            {
+                return Unauthorized();
+            }
+        }
+        /// <summary>
+        /// Register and get token
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost(ApiRoutes.Auth.Register)]
+        public async Task<ActionResult<AuthResponse>> Register([FromBody] AddUserRequest userRequest)
+        {
+            AuthResponse? authResponse = await TokenService.RegisterAsync(userRequest);
             if (authResponse != null)
             {
                 return Ok(authResponse);

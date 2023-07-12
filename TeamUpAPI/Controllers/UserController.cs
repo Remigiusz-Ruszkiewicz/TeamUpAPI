@@ -130,7 +130,7 @@ namespace TeamUpAPI.Controllers
             return Enums.OperationResult.BadRequest;
         }
         /// <summary>
-        /// Get Recomended Users
+        /// Get Recomended Usersś
         /// </summary>
         //[AllowAnonymous]
         [HttpGet(ApiRoutes.User.GetRecomendedUsers)]
@@ -143,6 +143,21 @@ namespace TeamUpAPI.Controllers
                 return result;
             }
             return new List<UserResponse>();
+        }
+        /// <summary>
+        /// Get Current User
+        /// </summary>
+        //[AllowAnonymous]
+        [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
+        public async Task<UserResponse?> GetCurrentUserInfo()
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                var result = await UserService.GetUserByIdAsync(Guid.Parse(userId!));
+                return result;
+            }
+            return null;
         }
     }
 }

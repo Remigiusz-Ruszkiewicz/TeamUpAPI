@@ -178,5 +178,20 @@ namespace TeamUpAPI.Controllers
             }
             return null;
         }
+        /// <summary>
+        /// Get Current User
+        /// </summary>
+        //[AllowAnonymous]
+        [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
+        public async Task<UserResponse?> GetCurrentUserInfo()
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                var result = await UserService.GetUserByIdAsync(Guid.Parse(userId!));
+                return result;
+            }
+            return null;
+        }
     }
 }

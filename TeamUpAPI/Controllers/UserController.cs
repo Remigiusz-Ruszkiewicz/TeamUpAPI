@@ -130,19 +130,53 @@ namespace TeamUpAPI.Controllers
             return Enums.OperationResult.BadRequest;
         }
         /// <summary>
-        /// Get Recomended Users
+        /// Get Recomended Users (optional game id parameter)
         /// </summary>
-        //[AllowAnonymous]
         [HttpGet(ApiRoutes.User.GetRecomendedUsers)]
-        public async Task<ICollection<UserResponse>> GetRecomendedUsers()
+        public Task<ICollection<UserResponse>> GetRecomendedUsers(Guid? gameId = null)
         {
             string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
             if (userId != null)
             {
-                var result = await UserService.GetRecomendedUsersAsync(Guid.Parse(userId!));
+                if (gameId != null)
+                {
+                    return UserService.GetRecomendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
+                }
+                else
+                {
+                    return UserService.GetRecomendedUsersAsync(Guid.Parse(userId!));
+                }
+
+            }
+            return Task.FromResult<ICollection<UserResponse>>(new List<UserResponse>());
+        }
+        ///// <summary>
+        ///// Get Recomended Users By Game
+        ///// </summary>
+        //[HttpGet(ApiRoutes.User.GetRecomendedUsersByGame)]
+        //public async Task<ICollection<UserResponse>> GetRecomendedUsersByGame([FromRoute] Guid gameId)
+        //{
+        //    string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+        //    if (userId != null)
+        //    {
+        //        var result = await UserService.GetRecomendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
+        //        return result;
+        //    }
+        //    return new List<UserResponse>();
+        //}
+        /// <summary>
+        /// Get Current User
+        /// </summary>
+        [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
+        public async Task<UserResponse?> GetCurrentUserInfo()
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                var result = await UserService.GetUserByIdAsync(Guid.Parse(userId!));
                 return result;
             }
-            return new List<UserResponse>();
+            return null;
         }
     }
 }

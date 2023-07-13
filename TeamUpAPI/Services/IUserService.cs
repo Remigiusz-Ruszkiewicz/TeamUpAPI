@@ -19,6 +19,7 @@ namespace TeamUpAPI.Services
 
         public Task<ICollection<FriendResponse>> GetUserFriendsAsync(Guid id);
         public Task<ICollection<UserResponse>> GetRecomendedUsersAsync(Guid id);
+        public Task<ICollection<UserResponse>> GetRecomendedUsersByGameAsync(Guid id, string gameId);
         public Task<Enums.OperationResult> AddToUserFriendsAsync(Guid userId, List<string> friendsIds);
         public Task<Enums.OperationResult> DeleteFromUserFriendsAsync(Guid userId, List<string> friendsIds);
     }

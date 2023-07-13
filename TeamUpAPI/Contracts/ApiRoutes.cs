@@ -21,7 +21,11 @@ namespace TeamUpAPI.Contracts
 
             public const string DeleteUser = Base + "User";
 
+            public const string GetCurrentUserInfo = Base + "User/currentUser";
+
             public const string GetRecomendedUsers = Base + "User/Recomended";
+
+            //public const string GetRecomendedUsersByGame = Base + "User/Recomended/{gameId}";
 
             public const string GetUserFriends = Base + "User/Friends";
 

@@ -71,25 +71,7 @@ namespace TeamUpAPI.Services
             try
             {
                 Dbcontext.Database.BeginTransaction();
-                //string? friends = null;
                 string? games = null;
-                //if (userRequest.FriendsList != null)
-                //{
-                //    foreach (string friendId in userRequest.FriendsList)
-                //    {
-                //        if (friends != null)
-                //        {
-                //            if (!friends.Contains(friendId))
-                //            {
-                //                friends += $"{friendId};";
-                //            }
-                //        }
-                //        else
-                //        {
-                //            friends = $"{friendId};";
-                //        }
-                //    }
-                //}
                 if (userRequest.GamesList != null)
                 {
                     foreach (string gameId in userRequest.GamesList)
@@ -287,6 +269,40 @@ namespace TeamUpAPI.Services
                     continue;
                 }
                 if (user.Id == id.ToString())
+                {
+                    continue;
+                }
+                UserResponse? response = await GetUserByIdAsync(Guid.Parse(user.Id));
+                if (response != null)
+                    userResponses.Add(response);
+            }
+            return userResponses;
+        }
+        public async Task<ICollection<UserResponse>> GetRecomendedUsersByGameAsync(Guid id, string gameId)
+        {
+            User? currentUser = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
+            List<string>? friendsIds = new List<string>();
+            if (currentUser != null)
+            {
+                friendsIds = currentUser.FriendsList?.Split(';').ToList();
+            }
+            List<User> users = await Dbcontext.Users.ToListAsync();
+            List<UserResponse> userResponses = new();
+            foreach (User user in users)
+            {
+                if (friendsIds != null && friendsIds.Contains(user.Id))
+                {
+                    continue;
+                }
+                if (user.Id == id.ToString())
+                {
+                    continue;
+                }
+                if (user.GamesList != null && !user.GamesList.Contains(gameId))
+                {
+                    continue;
+                }
+                if (user.GamesList.IsNullOrEmpty())
                 {
                     continue;
                 }

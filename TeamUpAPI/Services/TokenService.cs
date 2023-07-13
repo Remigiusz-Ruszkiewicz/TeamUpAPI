@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,6 +7,8 @@ using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
 using TeamUpAPI.Data;
 using TeamUpAPI.Models;
+using BCrypt.Net;
+using Microsoft.AspNetCore.Identity;
 
 namespace TeamUpAPI.Services
 {
@@ -19,65 +19,41 @@ namespace TeamUpAPI.Services
             Dbcontext = dbcontext;
         }
         public DataContext Dbcontext { get; }
-        private const int ExpirationMinutes = 30;
+        private const int ExpirationMinutes = 600;
 
         private static string CreateToken(User user)
         {
-            var expiration = DateTime.UtcNow.AddMinutes(ExpirationMinutes);
-            var token = CreateJwtToken(
-                CreateClaims(user),
-                CreateSigningCredentials(),
-                expiration
-            );
-            var tokenHandler = new JwtSecurityTokenHandler();
-            return tokenHandler.WriteToken(token);
-        }
-
-        private static JwtSecurityToken CreateJwtToken(List<Claim> claims, SigningCredentials credentials,
-            DateTime expiration) =>
-            new(
-                "apiWithAuthBackend",
-                "apiWithAuthBackend",
-                claims,
-                expires: expiration,
-                signingCredentials: credentials
-            );
-
-        private static List<Claim> CreateClaims(User user)
-        {
-            try
-            {
-                return new List<Claim>
+            return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+                issuer: ConfigurationManager.AppSetting["JWT:ValidIssuer"],
+                audience: ConfigurationManager.AppSetting["JWT:ValidAudience"],
+                claims: new List<Claim>
                 {
-                    new Claim(JwtRegisteredClaimNames.Sub, "TokenForTheApiWithAuth"),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString(CultureInfo.InvariantCulture)),
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Email, user.Email)
-                };
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+                },
+                expires: DateTime.UtcNow.AddMinutes(ExpirationMinutes),
+                signingCredentials: CreateSigningCredentials()));
         }
+
         private static SigningCredentials CreateSigningCredentials()
         {
             return new SigningCredentials(
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes("!loremipsumzaq1@WSXzadupietojesttutenhashnaapidotokenajwt!")
-                ),
-                SecurityAlgorithms.HmacSha256
+new SymmetricSecurityKey(Encoding.UTF8.GetBytes(ConfigurationManager.AppSetting["JWT:Secret"])),
+            SecurityAlgorithms.HmacSha256
             );
         }
 
         public async Task<AuthResponse?> LoginAsync(AuthRequest request)
         {
-            var userInDb = Dbcontext.Users.FirstOrDefault(u => u.Email == request.Email && u.Password == request.Password);
+            var userInDb = Dbcontext.Users.FirstOrDefault(u => u.Email == request.Email);
             if (userInDb is null)
                 return null;
+            bool isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, userInDb.Password);
+            if (!isPasswordCorrect)
+            {
+                return null;
+            }
             var accessToken = CreateToken(userInDb);
             await Dbcontext.SaveChangesAsync();
             return new AuthResponse
@@ -87,5 +63,64 @@ namespace TeamUpAPI.Services
                 Token = accessToken,
             };
         }
+        public async Task<AuthResponse?> RegisterAsync(AddUserRequest userRequest)
+        {
+            if (Dbcontext.Users.Any(x => x.Username == userRequest.Username))
+                throw new Exception("Username '" + userRequest.Username + "' is already taken");
+            if (Dbcontext.Users.Any(x => x.Email == userRequest.Email))
+                throw new Exception("Email '" + userRequest.Email + "' is already used");
+
+            userRequest.Password = BCrypt.Net.BCrypt.HashPassword(userRequest.Password);
+            //string? friends = null;
+            string? games = null;
+            //if (userRequest.FriendsList != null)
+            //{
+            //    foreach (string friendId in userRequest.FriendsList)
+            //    {
+            //        if (friends != null)
+            //        {
+            //            if (!friends.Contains(friendId))
+            //            {
+            //                friends += $"{friendId};";
+            //            }
+            //        }
+            //        else
+            //        {
+            //            friends = $"{friendId};";
+            //        }
+            //    }
+            //}
+            if (userRequest.GamesList != null)
+            {
+                foreach (string gameId in userRequest.GamesList)
+                {
+                    if (games != null)
+                    {
+                        if (!games.Contains(gameId))
+                        {
+                            games += $"{gameId};";
+                        }
+                    }
+                    else
+                    {
+                        games = $"{gameId};";
+                    }
+                }
+            }
+            User user = new(
+                    )
+            { Id = Guid.NewGuid().ToString(), Username = userRequest.Username, StartHour = userRequest.StartHour, EndHour = userRequest.EndHour, Age = userRequest.Age, Email = userRequest.Email, Password = userRequest.Password, FriendsList = null, GamesList = games, };
+
+            await Dbcontext.Users.AddAsync(user);
+            await Dbcontext.SaveChangesAsync();
+            var accessToken = CreateToken(user);
+            return new AuthResponse
+            {
+                Username = user.Username,
+                Email = user.Email,
+                Token = accessToken,
+            };
+        }
+
     }
 }

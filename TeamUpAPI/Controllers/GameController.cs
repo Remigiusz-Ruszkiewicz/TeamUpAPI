@@ -15,6 +15,7 @@ namespace TeamUpAPI.Controllers
     /// <summary>
     /// Game Controller
     /// </summary>
+    [ApiController, Authorize]
     public class GameController : Controller
     {
         /// <summary>
@@ -30,7 +31,6 @@ namespace TeamUpAPI.Controllers
         /// <summary>
         /// Get Game By Id
         /// </summary>
-        [AllowAnonymous]
         [HttpGet(ApiRoutes.Game.GetGameById)]
         public async Task<IActionResult> GetGameByIdAsync([FromRoute] Guid id)
         {
@@ -57,11 +57,51 @@ namespace TeamUpAPI.Controllers
         /// <summary>
         /// Get Games List By Category
         /// </summary>
-        [AllowAnonymous]
         [HttpGet(ApiRoutes.Game.GetGamesByCategory)]
         public async Task<ICollection<Game>> GetGamesByCategoryAsync([FromRoute] Enums.GameCategories category)
         {
             return (await GameService.GetGamesByCategoryAsync(category)).ToList();
+        }
+        /// <summary>
+        /// Get Current User Games List
+        /// </summary>
+        [HttpGet(ApiRoutes.Game.GetCurrentUserGamesList)]
+        public async Task<ICollection<Game>> GetCurrentUserGamesList()
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                return (await GameService.GetCurrentUserGamesListAsync(Guid.Parse(userId))).ToList();
+            }
+            return new List<Game>();
+        }
+        /// <summary>
+        /// Add to User Games List
+        /// </summary>
+        [HttpPost(ApiRoutes.Game.AddToUserGames)]
+        public async Task<Enums.OperationResult> AddToUserGames([FromBody] List<string> gamesIds)
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                await GameService.AddToUserGamesAsync(Guid.Parse(userId!), gamesIds);
+                return Enums.OperationResult.Ok;
+            }
+            return Enums.OperationResult.BadRequest;
+        }
+        /// <summary>
+        /// Delete from User Games List
+        /// </summary>
+        [HttpDelete(ApiRoutes.Game.DeleteFromUserGames)]
+        public async Task<Enums.OperationResult> DeleteFromUserGames([FromBody] List<string> gamesIds)
+        {
+            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            if (userId != null)
+            {
+                await GameService.DeleteFromUserGamesAsync(Guid.Parse(userId!), gamesIds);
+                return Enums.OperationResult.Ok;
+            }
+            return Enums.OperationResult.BadRequest;
         }
     }
 }

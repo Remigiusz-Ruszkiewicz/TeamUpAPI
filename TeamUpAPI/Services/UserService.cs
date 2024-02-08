@@ -7,36 +7,33 @@ using UserToUserResponseMapper = TeamUpAPI.Helpers.Mappers.UserToUserResponseMap
 using UserToFriendResponseMapper = TeamUpAPI.Helpers.Mappers.UserToFriendResponseMapper;
 using TeamUpAPI.Models;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace TeamUpAPI.Services
 {
     public class UserService : IUserService
     {
-        public UserService(DataContext dbcontext, IGameService gameService)
+        public UserService(DataContext dbcontext, UserManager<User> userManager)
         {
             Dbcontext = dbcontext;
-            GameService = gameService;
+            _userManager = userManager;
         }
         public DataContext Dbcontext { get; }
-        private IGameService GameService { get; }
+        private readonly UserManager<User> _userManager;
 
-        public async Task<Enums.OperationResult> AddToUserFriendsAsync(Guid userId, List<string> friendsIds)
+        public async Task<Enums.OperationResult> AddToUserFriendsAsync(List<Guid> friendsIds)
         {
-            User? user = await Dbcontext.Users.FirstOrDefaultAsync((x) => x.Id == userId.ToString());
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (user != null)
             {
-                foreach (string friendId in friendsIds)
+                foreach (Guid friendId in friendsIds)
                 {
-                    if (user.FriendsList != null)
+                    if (!user.FriendsList.Any((x) => x.Id == friendId.ToString()))
                     {
-                        if (!user.FriendsList.Contains(friendId))
-                        {
-                            user.FriendsList += $"{friendId};";
-                        }
-                    }
-                    else
-                    {
-                        user.FriendsList = $"{friendId};";
+                        User? friendProfile = await Dbcontext.Users.FirstOrDefaultAsync((x) => x.Id == friendId.ToString());
+                        user.FriendsList.Add(new Friend() { Id = friendId.ToString(), Email = friendProfile.Email, UserName = friendProfile.Email, Age = friendProfile.Age, StartHour = friendProfile.StartHour, EndHour = friendProfile.EndHour, FriendsList = friendProfile.FriendsList, GamesList = friendProfile.GamesList });
+                        Dbcontext.Users.Update(user);
                     }
                 }
                 await Dbcontext.SaveChangesAsync();
@@ -45,24 +42,20 @@ namespace TeamUpAPI.Services
             return Enums.OperationResult.Error;
         }
 
-        public async Task<Enums.OperationResult> DeleteFromUserFriendsAsync(Guid userId, List<string> friendsIds)
+        public async Task<Enums.OperationResult> DeleteFromUserFriendsAsync(Guid id)
         {
-            User? user = await Dbcontext.Users.FirstOrDefaultAsync((x) => x.Id == userId.ToString());
-            if (user != null)
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
+
+            if (user == null) return Enums.OperationResult.Error;
+
+            var friend = user.FriendsList.FirstOrDefault(f => f.Id == id.ToString());
+            if (friend != null)
             {
-                if (user.FriendsList != null)
-                {
-                    foreach (string friendId in friendsIds)
-                    {
-                        if (user.FriendsList.Contains(friendId))
-                        {
-                            user.FriendsList = user.FriendsList.Replace($"{friendId};", "");
-                        }
-                    }
-                }
+                user.FriendsList.Remove(friend);
                 await Dbcontext.SaveChangesAsync();
                 return Enums.OperationResult.Ok;
             }
+
             return Enums.OperationResult.Error;
         }
 
@@ -71,27 +64,9 @@ namespace TeamUpAPI.Services
             try
             {
                 Dbcontext.Database.BeginTransaction();
-                string? games = null;
-                if (userRequest.GamesList != null)
-                {
-                    foreach (string gameId in userRequest.GamesList)
-                    {
-                        if (games != null)
-                        {
-                            if (!games.Contains(gameId))
-                            {
-                                games += $"{gameId};";
-                            }
-                        }
-                        else
-                        {
-                            games = $"{gameId};";
-                        }
-                    }
-                }
                 User user = new(
                     )
-                { Id = Guid.NewGuid().ToString(), Username = userRequest.Username, StartHour = userRequest.StartHour, EndHour = userRequest.EndHour, Age = userRequest.Age, Email = userRequest.Email, Password = userRequest.Password, FriendsList = null, GamesList = games };
+                { Id = Guid.NewGuid().ToString(), UserName = userRequest.Username, StartHour = userRequest.StartHour, EndHour = userRequest.EndHour, Age = userRequest.Age, Email = userRequest.Email, PasswordHash = userRequest.Password, FriendsList = userRequest.FriendsList, GamesList = userRequest.GamesList };
                 Dbcontext.Set<User>().Add(user);
                 Dbcontext.SaveChanges();
                 Dbcontext.Database.CommitTransaction();
@@ -143,105 +118,34 @@ namespace TeamUpAPI.Services
             try
             {
                 User? user = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
-                List<Game>? games = new();
-                List<FriendResponse>? friends = null;
-                if (user != null)
-                {
-                    if (user.FriendsList != null)
-                    {
-                        friends = new();
-                        string[] friendsIds = user.FriendsList.Split(';');
-                        foreach (string friendId in friendsIds)
-                        {
-                            if (Guid.TryParse(friendId, out Guid guid))
-                            {
-                                ICollection<FriendResponse> friendsList = await GetUserFriendsAsync(guid);
-                                if (!friendsList.IsNullOrEmpty())
-                                {
-                                    friends.AddRange(friendsList);
-                                }
-                            }
-
-                        }
-
-                    }
-                    if (user.GamesList != null)
-                    {
-
-                        string[] gamesIds = user.GamesList.Split(';');
-                        foreach (string gameId in gamesIds)
-                        {
-                            if (Guid.TryParse(gameId, out Guid guid))
-                            {
-                                Game? game = await GameService.GetGameByIdAsync(Guid.Parse(gameId));
-                                if (game != null)
-                                {
-                                    games.Add(game);
-                                }
-                            }
-
-                        }
-                    }
-                    return UserToUserResponseMapper.UserToUserResponse(user, games, friends);
-                }
+                if (user != null) return UserToUserResponseMapper.UserToUserResponse(user);
             }
             catch (Exception ee)
             {
-
-                throw;
+                return null;
             }
 
             return null;
         }
 
-        public async Task<ICollection<FriendResponse>> GetUserFriendsAsync(Guid id)
+        public async Task<ICollection<Friend>> GetUserFriendsAsync()
         {
-#pragma warning disable U2U1201 // Local collections should be initialized with capacity
-            List<FriendResponse> friends = new();
-#pragma warning restore U2U1201 // Local collections should be initialized with capacity
-            User? user = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (user != null)
             {
-                List<string>? friendsIds = user.FriendsList?.Split(';').ToList();
-                for (int i = 0; i < friendsIds?.Count; i++)
-                {
-                    string item = friendsIds[i];
-                    User? friend = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == item);
-                    if (friend != null)
-                    {
-                        List<Game>? games = new();
-                        if (friend.GamesList != null)
-                        {
-                            string[] gamesIds = friend.GamesList.Split(';');
-                            foreach (string gameId in gamesIds)
-                            {
-                                if (Guid.TryParse(gameId, out Guid guid))
-                                {
-                                    Game? game = await GameService.GetGameByIdAsync(Guid.Parse(gameId));
-                                    if (game != null)
-                                    {
-                                        games.Add(game);
-                                    }
-                                }
-
-                            }
-                        }
-                        friends.Add(UserToFriendResponseMapper.UserToFriendResponse(friend, games));
-                    }
-                }
+                return user.FriendsList;
             }
-
-            return friends;
+            return new List<Friend>();
         }
 
-        public async Task<ICollection<UserResponse>> GetUsersAsync(Guid id)
+        public async Task<ICollection<UserResponse>> GetUsersAsync()
         {
             var users = await Dbcontext.Users.ToListAsync();
             List<UserResponse> userResponses = new();
+            var userId = _userManager.GetUserId(ClaimsPrincipal.Current);
             foreach (User user in users)
             {
-
-                if (user.Id == id.ToString())
+                if (user.Id == userId)
                 {
                     continue;
                 }
@@ -252,65 +156,61 @@ namespace TeamUpAPI.Services
             return userResponses;
         }
 
-        public async Task<ICollection<UserResponse>> GetRecomendedUsersAsync(Guid id)
+        public async Task<ICollection<UserResponse>> GetRecomendedUsersAsync()
         {
-            User? currentUser = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
-            List<string>? friendsIds = new List<string>();
+            var currentUser = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (currentUser != null)
             {
-                friendsIds = currentUser.FriendsList?.Split(';').ToList();
-            }
-            List<User> users = await Dbcontext.Users.ToListAsync();
-            List<UserResponse> userResponses = new();
-            foreach (User user in users)
-            {
-                if (friendsIds != null && friendsIds.Contains(user.Id))
+                List<User> users = await Dbcontext.Users.ToListAsync();
+                List<UserResponse> userResponses = new();
+                foreach (User user in users)
                 {
-                    continue;
+                    if (currentUser.FriendsList.Any((x) => x.Id == user.Id))
+                    {
+                        continue;
+                    }
+                    if (user.Id == currentUser.Id)
+                    {
+                        continue;
+                    }
+                    UserResponse? response = await GetUserByIdAsync(Guid.Parse(user.Id));
+                    if (response != null)
+                        userResponses.Add(response);
                 }
-                if (user.Id == id.ToString())
-                {
-                    continue;
-                }
-                UserResponse? response = await GetUserByIdAsync(Guid.Parse(user.Id));
-                if (response != null)
-                    userResponses.Add(response);
+                return userResponses;
             }
-            return userResponses;
+            return new List<UserResponse>();
         }
-        public async Task<ICollection<UserResponse>> GetRecomendedUsersByGameAsync(Guid id, string gameId)
+        public async Task<ICollection<UserResponse>> GetRecomendedUsersByGameAsync(Guid gameId)
         {
-            User? currentUser = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
-            List<string>? friendsIds = new List<string>();
+            var currentUser = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (currentUser != null)
             {
-                friendsIds = currentUser.FriendsList?.Split(';').ToList();
+                List<User> users = await Dbcontext.Users.ToListAsync();
+                List<UserResponse> userResponses = new();
+                foreach (User user in users)
+                {
+                    if (currentUser.FriendsList.Any((x) => x.Id == user.Id))
+                    {
+                        continue;
+                    }
+                    if (user.Id == currentUser.Id)
+                    {
+                        continue;
+                    }
+                    if (user.GamesList.IsNullOrEmpty())
+                    {
+                        continue;
+                    }
+                    UserResponse? response = await GetUserByIdAsync(Guid.Parse(user.Id));
+                    if (response != null)
+                        userResponses.Add(response);
+                }
+                return userResponses;
             }
-            List<User> users = await Dbcontext.Users.ToListAsync();
-            List<UserResponse> userResponses = new();
-            foreach (User user in users)
-            {
-                if (friendsIds != null && friendsIds.Contains(user.Id))
-                {
-                    continue;
-                }
-                if (user.Id == id.ToString())
-                {
-                    continue;
-                }
-                if (user.GamesList != null && !user.GamesList.Contains(gameId))
-                {
-                    continue;
-                }
-                if (user.GamesList.IsNullOrEmpty())
-                {
-                    continue;
-                }
-                UserResponse? response = await GetUserByIdAsync(Guid.Parse(user.Id));
-                if (response != null)
-                    userResponses.Add(response);
-            }
-            return userResponses;
+            return new List<UserResponse>();
         }
+
+        public async Task<UserResponse?> GeturrentUserAsync() => UserToUserResponseMapper.UserToUserResponse(await _userManager.GetUserAsync(ClaimsPrincipal.Current));
     }
 }

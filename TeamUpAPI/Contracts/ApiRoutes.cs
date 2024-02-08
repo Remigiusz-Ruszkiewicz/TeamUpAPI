@@ -31,12 +31,14 @@ namespace TeamUpAPI.Contracts
 
             public const string AddToUserFriends = Base + "User/Friends";
 
-            public const string DeleteFromUserFriends = Base + "User/Friends";
+            public const string DeleteFromUserFriends = Base + "User/Friends/{id}";
         }
         public static class Auth
         {
             public const string Login = Base + "Login";
             public const string Register = Base + "Register";
+            public const string LoginWithToken = Base + "LoginWithToken";
+            public const string RegisterWithToken = Base + "RegisterWithToken";
         }
         public static class Game
         {

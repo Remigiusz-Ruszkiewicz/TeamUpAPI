@@ -1,19 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TeamUpAPI.Data;
 using TeamUpAPI.Helpers;
-using TeamUpAPI.Helpers.Mappers;
 using TeamUpAPI.Models;
-using static Npgsql.PostgresTypes.PostgresCompositeType;
 
 namespace TeamUpAPI.Services
 {
     public class GameService : IGameService
     {
-        public GameService(DataContext dbcontext)
+        public GameService(DataContext dbcontext, UserManager<User> userManager)
         {
             Dbcontext = dbcontext;
+            _userManager = userManager;
         }
         public DataContext Dbcontext { get; }
+        private readonly UserManager<User> _userManager;
         public Task<Game?> GetGameByIdAsync(Guid id)
         {
             return Dbcontext.Games.SingleOrDefaultAsync((x) => x.Id == id.ToString());
@@ -33,49 +35,29 @@ namespace TeamUpAPI.Services
             return await Dbcontext.Games.ToListAsync();
         }
 
-        public async Task<ICollection<Game>> GetCurrentUserGamesListAsync(Guid id)
+        public async Task<ICollection<Game>> GetCurrentUserGamesListAsync()
         {
-            User? user = await Dbcontext.Users.SingleOrDefaultAsync((x) => x.Id == id.ToString());
-            List<Game>? games = new();
-            if (user != null)
-            {
-
-                if (user.GamesList != null)
-                {
-                    string[] gamesIds = user.GamesList.Split(';');
-                    foreach (string gameId in gamesIds)
-                    {
-                        if (Guid.TryParse(gameId, out Guid guid))
-                        {
-                            Game? game = await GetGameByIdAsync(Guid.Parse(gameId));
-                            if (game != null)
-                            {
-                                games.Add(game);
-                            }
-                        }
-
-                    }
-                }
-            }
-            return games;
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
+            return user.GamesList;
         }
-        public async Task<Enums.OperationResult> AddToUserGamesAsync(Guid userId, List<string> gamesIds)
+        public async Task<Enums.OperationResult> AddToUserGamesAsync(List<Guid> gamesIds)
         {
-            User? user = await Dbcontext.Users.FirstOrDefaultAsync((x) => x.Id == userId.ToString());
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (user != null)
             {
-                foreach (string gameId in gamesIds)
+                foreach (Guid gameId in gamesIds)
                 {
-                    if (user.GamesList != null)
+                    if (!user.GamesList.Any((x) => x.Id == gameId.ToString()))
                     {
-                        if (!user.GamesList.Contains(gameId))
+                        Game? game = await GetGameByIdAsync(gameId);
+                        if (game != null)
                         {
-                            user.GamesList += $"{gameId};";
+                            user.GamesList.Add(game);
                         }
-                    }
-                    else
-                    {
-                        user.GamesList = $"{gameId};";
+                        else
+                        {
+                            return Enums.OperationResult.BadRequest;
+                        }
                     }
                 }
                 await Dbcontext.SaveChangesAsync();
@@ -84,18 +66,23 @@ namespace TeamUpAPI.Services
             return Enums.OperationResult.Error;
         }
 
-        public async Task<Enums.OperationResult> DeleteFromUserGamesAsync(Guid userId, List<string> gamesIds)
+        public async Task<Enums.OperationResult> DeleteFromUserGamesAsync(List<Guid> gamesIds)
         {
-            User? user = await Dbcontext.Users.FirstOrDefaultAsync((x) => x.Id == userId.ToString());
+            var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (user != null)
             {
                 if (user.GamesList != null)
                 {
-                    foreach (string gameId in gamesIds)
+                    foreach (Guid gameId in gamesIds)
                     {
-                        if (user.GamesList.Contains(gameId))
+                        Game? game = await GetGameByIdAsync(gameId);
+                        if (game != null)
                         {
-                            user.GamesList = user.GamesList.Replace($"{gameId};", "");
+                            user.GamesList.Remove(game);
+                        }
+                        else
+                        {
+                            return Enums.OperationResult.BadRequest;
                         }
                     }
                 }

@@ -5,17 +5,17 @@ namespace TeamUpAPI.Helpers.Mappers
 {
     public static class UserToFriendResponseMapper
     {
-        public static FriendResponse UserToFriendResponse(User user, List<Game>? games)
+        public static FriendResponse UserToFriendResponse(User user)
         {
             return new FriendResponse()
             {
                 Id = user.Id,
-                Username = user.Username,
+                Username = user.UserName,
                 Email = user.Email,
                 Age = user.Age,
                 StartHour = user.StartHour,
                 EndHour = user.EndHour,
-                GamesList = games,
+                GamesList = user.GamesList,
             };
         }
     }

@@ -13,7 +13,9 @@
             PuzzlersAndPartyGames = 6,
             ActionAdventure = 7,
             SurvivalAndHorror = 8,
-            Platformer = 9
+            Racing = 9,
+            Strategy = 10,
+            Platformer = 11
         }
         public enum OperationResult
         {

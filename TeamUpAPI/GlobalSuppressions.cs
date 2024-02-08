@@ -5,4 +5,4 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Performance", "U2U1009:Async or iterator methods should avoid state machine generation for early exits (throws or synchronous returns)", Justification = "<Pending>", Scope = "member", Target = "~M:TeamUpAPI.Services.TokenService.LoginAsync(TeamUpAPI.Contracts.Requests.AuthRequest)~System.Threading.Tasks.Task{TeamUpAPI.Contracts.Responses.AuthResponse}")]
+[assembly: SuppressMessage("Performance", "U2U1009:Async or iterator methods should avoid state machine generation for early exits (throws or synchronous returns)", Justification = "<Pending>", Scope = "member", Target = "~M:TeamUpAPI.Services.AuthService.LoginAsync(TeamUpAPI.Contracts.Requests.AuthRequest)~System.Threading.Tasks.Task{TeamUpAPI.Contracts.Responses.AuthResponse}")]

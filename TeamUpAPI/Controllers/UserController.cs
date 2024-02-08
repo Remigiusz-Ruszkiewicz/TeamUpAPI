@@ -1,32 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using TeamUpAPI.Contracts;
 using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
 using TeamUpAPI.Helpers;
 using TeamUpAPI.Models;
 using TeamUpAPI.Services;
-using TokenHelper = TeamUpAPI.Helpers.TokenHelper;
 
 namespace TeamUpAPI.Controllers
 {
     /// <summary>
-    /// User Controller
+    /// Manages user-related operations such as creating, retrieving, updating, and deleting user accounts.
+    /// Also handles operations related to user relationships, like managing friends lists and recommending users.
     /// </summary>
+    [ApiVersion("1.0")]
     [ApiController, Authorize]
     public class UserController : Controller
     {
         /// <summary>
-        /// Base Constructor for User Service
+        /// Initializes a new instance of UserController with a dependency on IUserService.
+        /// IUserService is responsible for executing user-related operations, including data management and relationship handling.
         /// </summary>
-        /// <param name="userService"></param>
+        /// <param name="userService">The service that implements user logic.</param>
         public UserController(IUserService userService)
         {
             UserService = userService;
@@ -34,29 +30,29 @@ namespace TeamUpAPI.Controllers
 
         private IUserService UserService { get; }
         /// <summary>
-        /// Add User
+        /// Adds a new user to the application using the provided user details.
         /// </summary>
+        /// <param name="addUserRequest">The details of the user to add, including username, password, and email.</param>
+        /// <returns>An IActionResult indicating the success or failure of the add operation.</returns>
         [HttpPost(ApiRoutes.User.AddUser)]
         public IActionResult AddUser([FromBody] AddUserRequest addUserRequest)
         {
             return Ok(UserService.AddUser(addUserRequest));
         }
         /// <summary>
-        /// Get All Users List
+        /// Retrieves a list of all users registered in the application.
         /// </summary>
+        /// <returns>An IActionResult containing a list of all users.</returns>
         [HttpGet(ApiRoutes.User.GetAllUsers)]
         public async Task<IActionResult> GetAllUsers()
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                return Ok(UserService.GetUsersAsync(Guid.Parse(userId!)));
-            }
-            return NotFound("Bad Token try with valid one");
+            return Ok(await UserService.GetUsersAsync());
         }
         /// <summary>
-        /// Get User By Id
+        /// Retrieves detailed information about a specific user by their unique identifier.
         /// </summary>
+        /// <param name="id">The unique identifier of the user to retrieve.</param>
+        /// <returns>An IActionResult containing the user's details if found; otherwise, NotFound.</returns>
         [HttpGet(ApiRoutes.User.GetUserById)]
         public async Task<IActionResult> GetUserById([FromRoute] Guid id)
         {
@@ -68,20 +64,23 @@ namespace TeamUpAPI.Controllers
             return Ok(user);
         }
         /// <summary>
-        /// Update User
+        /// Updates an existing user's details.
         /// </summary>
+        /// <param name="user">The updated user information.</param>
+        /// <returns>An IActionResult indicating the success or failure of the update operation.</returns>
         [HttpPut(ApiRoutes.User.UpdateUser)]
         public async Task<IActionResult> UpdateUser([FromBody] User user)
         {
             return Ok(await UserService.EditUser(user));
         }
         /// <summary>
-        /// Delete User Based On Id
+        /// Deletes the user identified by the Id stored in the request's cookies.
         /// </summary>
+        /// <returns>An IActionResult indicating the success or failure of the delete operation.</returns>
         [HttpDelete(ApiRoutes.User.DeleteUser)]
         public IActionResult DeleteUser()
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+            string? userId = HttpContext.Request.Cookies[key: "X-Id"];
             if (userId != null)
             {
                 return Ok(UserService.DeleteUser(Guid.Parse(userId!)));
@@ -89,66 +88,51 @@ namespace TeamUpAPI.Controllers
             return NotFound("Bad Token try with valid one");
         }
         /// <summary>
-        /// Get List Of User Friends Based On User Id
+        /// Retrieves a list of friends for the currently authenticated user.
         /// </summary>
+        /// <returns>An IActionResult containing a list of user friends.</returns>
         [HttpGet(ApiRoutes.User.GetUserFriends)]
         public async Task<IActionResult> GetUserFriends()
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                return Ok(await UserService.GetUserFriendsAsync(Guid.Parse(userId!)));
-            }
-            return NotFound("Bad Token try with valid one");
+            return Ok(await UserService.GetUserFriendsAsync());
         }
         /// <summary>
-        /// Add to User Friends List
+        /// Adds one or more users to the currently authenticated user's friends list.
         /// </summary>
+        /// <param name="friendsIds">A list of unique identifiers for the users to be added as friends.</param>
+        /// <returns>A Task with an OperationResult indicating the success or failure of the addition.</returns>
         [HttpPost(ApiRoutes.User.AddToUserFriends)]
-        public async Task<Enums.OperationResult> AddToUserFriends([FromBody] List<string> friendsIds)
+        public Task<Enums.OperationResult> AddToUserFriends([FromBody] List<Guid> friendsIds)
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                await UserService.AddToUserFriendsAsync(Guid.Parse(userId!), friendsIds);
-                return Enums.OperationResult.Ok;
-            }
-            return Enums.OperationResult.BadRequest;
+            return UserService.AddToUserFriendsAsync(friendsIds);
         }
         /// <summary>
-        /// Delete from User Friends List
+        /// Removes a user from the currently authenticated user's friends list.
         /// </summary>
+        /// <param name="id">The unique identifier of the friend to remove.</param>
+        /// <returns>A Task with an OperationResult indicating the success or failure of the removal.</returns>
         [HttpDelete(ApiRoutes.User.DeleteFromUserFriends)]
-        public async Task<Enums.OperationResult> DeleteFromUserFriends([FromBody] List<string> friendsIds)
+        public Task<Enums.OperationResult> DeleteFromUserFriends([FromRoute] Guid id)
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                await UserService.DeleteFromUserFriendsAsync(Guid.Parse(userId!), friendsIds);
-                return Enums.OperationResult.Ok;
-            }
-            return Enums.OperationResult.BadRequest;
+            return UserService.DeleteFromUserFriendsAsync(id);
         }
         /// <summary>
-        /// Get Recomended Users (optional game id parameter)
+        /// Retrieves a list of recommended users, optionally filtered by a specific game.
         /// </summary>
+        /// <param name="gameId">An optional parameter to filter recommendations based on a game's unique identifier.</param>
+        /// <returns>A Task containing a collection of recommended UserResponse objects.</returns>
         [HttpGet(ApiRoutes.User.GetRecomendedUsers)]
         public Task<ICollection<UserResponse>> GetRecomendedUsers(Guid? gameId = null)
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                if (gameId != null)
-                {
-                    return UserService.GetRecomendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
-                }
-                else
-                {
-                    return UserService.GetRecomendedUsersAsync(Guid.Parse(userId!));
-                }
 
+            if (gameId != null)
+            {
+                return UserService.GetRecomendedUsersByGameAsync((Guid)gameId);
             }
-            return Task.FromResult<ICollection<UserResponse>>(new List<UserResponse>());
+            else
+            {
+                return UserService.GetRecomendedUsersAsync();
+            }
         }
         ///// <summary>
         ///// Get Recomended Users By Game
@@ -156,7 +140,7 @@ namespace TeamUpAPI.Controllers
         //[HttpGet(ApiRoutes.User.GetRecomendedUsersByGame)]
         //public async Task<ICollection<UserResponse>> GetRecomendedUsersByGame([FromRoute] Guid gameId)
         //{
-        //    string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
+        //    string? userId = HttpContext.Request.Cookies[key: "X-Id"];
         //    if (userId != null)
         //    {
         //        var result = await UserService.GetRecomendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
@@ -165,33 +149,13 @@ namespace TeamUpAPI.Controllers
         //    return new List<UserResponse>();
         //}
         /// <summary>
-        /// Get Current User
+        /// Retrieves information about the currently authenticated user.
         /// </summary>
+        /// <returns>A Task containing the UserResponse of the current user.</returns>
         [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
-        public async Task<UserResponse?> GetCurrentUserInfo()
+        public Task<UserResponse?> GetCurrentUserInfo()
         {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                var result = await UserService.GetUserByIdAsync(Guid.Parse(userId!));
-                return result;
-            }
-            return null;
-        }
-        /// <summary>
-        /// Get Current User
-        /// </summary>
-        //[AllowAnonymous]
-        [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
-        public async Task<UserResponse?> GetCurrentUserInfo()
-        {
-            string? userId = TokenHelper.GetUserIdFromToken(HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", ""));
-            if (userId != null)
-            {
-                var result = await UserService.GetUserByIdAsync(Guid.Parse(userId!));
-                return result;
-            }
-            return null;
+            return UserService.GeturrentUserAsync();
         }
     }
 }

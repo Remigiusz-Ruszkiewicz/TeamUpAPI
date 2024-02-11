@@ -1,6 +1,6 @@
 ﻿namespace TeamUpAPI
 {
-    static class ConfigurationManager
+    internal static class ConfigurationManager
     {
         public static IConfiguration AppSetting
         {

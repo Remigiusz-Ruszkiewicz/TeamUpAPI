@@ -14,28 +14,29 @@ namespace TeamUpAPI.Services
             Dbcontext = dbcontext;
             _userManager = userManager;
         }
-        public DataContext Dbcontext { get; }
+
+        private DataContext Dbcontext { get; }
         private readonly UserManager<User> _userManager;
-        public Task<Game?> GetGameByIdAsync(Guid id)
+        public Task<Game?> GameByIdAsync(Guid id)
         {
             return Dbcontext.Games.SingleOrDefaultAsync((x) => x.Id == id.ToString());
         }
-        public async Task<ICollection<Game>> GetGamesByCategoryAsync(Enums.GameCategories category)
+        public async Task<ICollection<Game>> GamesByCategoryAsync(Enums.GameCategories category)
         {
             return await Dbcontext.Games.Where((x) => x.Category == category).ToListAsync();
         }
 
-        public ICollection<Enums.GameCategories> GetGameCategories()
+        public ICollection<Enums.GameCategories> GameCategories()
         {
             return Enum.GetValues(typeof(Enums.GameCategories)).Cast<Enums.GameCategories>().ToList();
         }
 
-        public async Task<ICollection<Game>> GetGamesAsync()
+        public async Task<ICollection<Game>> GamesAsync()
         {
             return await Dbcontext.Games.ToListAsync();
         }
 
-        public async Task<ICollection<Game>> GetCurrentUserGamesListAsync()
+        public async Task<ICollection<Game>> CurrentUserGamesListAsync()
         {
             var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             return user.GamesList;
@@ -47,9 +48,9 @@ namespace TeamUpAPI.Services
             {
                 foreach (Guid gameId in gamesIds)
                 {
-                    if (!user.GamesList.Any((x) => x.Id == gameId.ToString()))
+                    if (user.GamesList.All(x => x.Id != gameId.ToString()))
                     {
-                        Game? game = await GetGameByIdAsync(gameId);
+                        Game? game = await GameByIdAsync(gameId);
                         if (game != null)
                         {
                             user.GamesList.Add(game);
@@ -71,19 +72,16 @@ namespace TeamUpAPI.Services
             var user = await _userManager.GetUserAsync(ClaimsPrincipal.Current);
             if (user != null)
             {
-                if (user.GamesList != null)
+                foreach (Guid gameId in gamesIds)
                 {
-                    foreach (Guid gameId in gamesIds)
+                    Game? game = await GameByIdAsync(gameId);
+                    if (game != null)
                     {
-                        Game? game = await GetGameByIdAsync(gameId);
-                        if (game != null)
-                        {
-                            user.GamesList.Remove(game);
-                        }
-                        else
-                        {
-                            return Enums.OperationResult.BadRequest;
-                        }
+                        user.GamesList.Remove(game);
+                    }
+                    else
+                    {
+                        return Enums.OperationResult.BadRequest;
                     }
                 }
                 await Dbcontext.SaveChangesAsync();

@@ -1,14 +1,10 @@
 ﻿using Asp.Versioning;
-using Azure.Core;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
 using TeamUpAPI.Contracts;
 using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
-using TeamUpAPI.Data;
-using TeamUpAPI.Models;
 using TeamUpAPI.Services;
 
 namespace TeamUpAPI.Controllers
@@ -17,6 +13,7 @@ namespace TeamUpAPI.Controllers
     /// Manages user authentication processes such as login and registration within the TeamUp application.
     /// Supports operations for account creation, authentication, and secure token generation.
     /// </summary>
+    [EnableRateLimiting("fixed")]
     public class AuthController : ControllerBase
     {
         /// <summary>
@@ -40,15 +37,12 @@ namespace TeamUpAPI.Controllers
         [HttpPost(ApiRoutes.Auth.Login)]
         public async Task<ActionResult<AuthOperationResponse>> Login([FromBody] AuthRequest authRequest)
         {
-            AuthOperationResponse authResponse = await AuthService.LoginAsync(authRequest);
+            var authResponse = await AuthService.LoginAsync(authRequest);
             if (authResponse.Result)
             {
                 return Ok(authResponse);
             }
-            else
-            {
-                return BadRequest(authResponse);
-            }
+            return BadRequest(authResponse);
         }
         /// <summary>
         /// Registers a new user with the provided account details and returns an operation response indicating the success or failure of the registration attempt.

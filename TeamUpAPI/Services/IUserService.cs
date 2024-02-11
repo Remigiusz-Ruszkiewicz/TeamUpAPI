@@ -13,14 +13,14 @@ namespace TeamUpAPI.Services
 
         public Enums.OperationResult DeleteUser(Guid id);
 
-        public Task<ICollection<UserResponse>> GetUsersAsync();
+        public Task<ICollection<UserResponse>> UsersAsync();
 
-        public Task<UserResponse?> GetUserByIdAsync(Guid id);
-        public Task<UserResponse?> GeturrentUserAsync();
+        public Task<UserResponse?> UserByIdAsync(Guid id);
+        public Task<UserResponse?> CurrentUserAsync();
 
-        public Task<ICollection<Friend>> GetUserFriendsAsync();
-        public Task<ICollection<UserResponse>> GetRecomendedUsersAsync();
-        public Task<ICollection<UserResponse>> GetRecomendedUsersByGameAsync(Guid gameId);
+        public Task<ICollection<Friend>> UserFriendsAsync();
+        public Task<ICollection<UserResponse>> RecommendedUsersAsync();
+        public Task<ICollection<UserResponse>> RecommendedUsersByGameAsync(Guid gameId);
         public Task<Enums.OperationResult> AddToUserFriendsAsync(List<Guid> friendsIds);
         public Task<Enums.OperationResult> DeleteFromUserFriendsAsync(Guid id);
     }

@@ -1,16 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TeamUpAPI.Models;
-using Npgsql;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
 
 namespace TeamUpAPI.Data
 {
-    public class DataContext : IdentityDbContext<User>//: DbContext
+    public class DataContext : IdentityDbContext<User>
     {
-        protected readonly IConfiguration _configuration;
+        private readonly IConfiguration _configuration;
         public DataContext(DbContextOptions<DataContext> options, IConfiguration configuration)
             : base(options)
         {

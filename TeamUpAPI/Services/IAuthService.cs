@@ -1,6 +1,5 @@
 ﻿using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
-using TeamUpAPI.Models;
 
 namespace TeamUpAPI.Services
 {

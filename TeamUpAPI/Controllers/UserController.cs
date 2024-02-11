@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TeamUpAPI.Contracts;
 using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
@@ -14,6 +15,7 @@ namespace TeamUpAPI.Controllers
     /// Manages user-related operations such as creating, retrieving, updating, and deleting user accounts.
     /// Also handles operations related to user relationships, like managing friends lists and recommending users.
     /// </summary>
+    [EnableRateLimiting("fixed")]
     [ApiVersion("1.0")]
     [ApiController, Authorize]
     public class UserController : Controller
@@ -43,20 +45,20 @@ namespace TeamUpAPI.Controllers
         /// Retrieves a list of all users registered in the application.
         /// </summary>
         /// <returns>An IActionResult containing a list of all users.</returns>
-        [HttpGet(ApiRoutes.User.GetAllUsers)]
-        public async Task<IActionResult> GetAllUsers()
+        [HttpGet(ApiRoutes.User.AllUsers)]
+        public async Task<IActionResult> AllUsers()
         {
-            return Ok(await UserService.GetUsersAsync());
+            return Ok(await UserService.UsersAsync());
         }
         /// <summary>
         /// Retrieves detailed information about a specific user by their unique identifier.
         /// </summary>
         /// <param name="id">The unique identifier of the user to retrieve.</param>
         /// <returns>An IActionResult containing the user's details if found; otherwise, NotFound.</returns>
-        [HttpGet(ApiRoutes.User.GetUserById)]
-        public async Task<IActionResult> GetUserById([FromRoute] Guid id)
+        [HttpGet(ApiRoutes.User.UserById)]
+        public async Task<IActionResult> UserById([FromRoute] Guid id)
         {
-            var user = await UserService.GetUserByIdAsync(id);
+            var user = await UserService.UserByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
@@ -83,7 +85,7 @@ namespace TeamUpAPI.Controllers
             string? userId = HttpContext.Request.Cookies[key: "X-Id"];
             if (userId != null)
             {
-                return Ok(UserService.DeleteUser(Guid.Parse(userId!)));
+                return Ok(UserService.DeleteUser(Guid.Parse(userId)));
             }
             return NotFound("Bad Token try with valid one");
         }
@@ -91,10 +93,10 @@ namespace TeamUpAPI.Controllers
         /// Retrieves a list of friends for the currently authenticated user.
         /// </summary>
         /// <returns>An IActionResult containing a list of user friends.</returns>
-        [HttpGet(ApiRoutes.User.GetUserFriends)]
-        public async Task<IActionResult> GetUserFriends()
+        [HttpGet(ApiRoutes.User.UserFriends)]
+        public async Task<IActionResult> UserFriends()
         {
-            return Ok(await UserService.GetUserFriendsAsync());
+            return Ok(await UserService.UserFriendsAsync());
         }
         /// <summary>
         /// Adds one or more users to the currently authenticated user's friends list.
@@ -121,29 +123,21 @@ namespace TeamUpAPI.Controllers
         /// </summary>
         /// <param name="gameId">An optional parameter to filter recommendations based on a game's unique identifier.</param>
         /// <returns>A Task containing a collection of recommended UserResponse objects.</returns>
-        [HttpGet(ApiRoutes.User.GetRecomendedUsers)]
-        public Task<ICollection<UserResponse>> GetRecomendedUsers(Guid? gameId = null)
+        [HttpGet(ApiRoutes.User.RecommendedUsers)]
+        public Task<ICollection<UserResponse>> RecommendedUsers(Guid? gameId = null)
         {
-
-            if (gameId != null)
-            {
-                return UserService.GetRecomendedUsersByGameAsync((Guid)gameId);
-            }
-            else
-            {
-                return UserService.GetRecomendedUsersAsync();
-            }
+            return gameId != null ? UserService.RecommendedUsersByGameAsync((Guid)gameId) : UserService.RecommendedUsersAsync();
         }
         ///// <summary>
-        ///// Get Recomended Users By Game
+        ///// Get Recommended Users By Game
         ///// </summary>
-        //[HttpGet(ApiRoutes.User.GetRecomendedUsersByGame)]
-        //public async Task<ICollection<UserResponse>> GetRecomendedUsersByGame([FromRoute] Guid gameId)
+        //[HttpGet(ApiRoutes.User.GetRecommendedUsersByGame)]
+        //public async Task<ICollection<UserResponse>> GetRecommendedUsersByGame([FromRoute] Guid gameId)
         //{
         //    string? userId = HttpContext.Request.Cookies[key: "X-Id"];
         //    if (userId != null)
         //    {
-        //        var result = await UserService.GetRecomendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
+        //        var result = await UserService.GetRecommendedUsersByGameAsync(Guid.Parse(userId!), gameId.ToString());
         //        return result;
         //    }
         //    return new List<UserResponse>();
@@ -152,10 +146,10 @@ namespace TeamUpAPI.Controllers
         /// Retrieves information about the currently authenticated user.
         /// </summary>
         /// <returns>A Task containing the UserResponse of the current user.</returns>
-        [HttpGet(ApiRoutes.User.GetCurrentUserInfo)]
-        public Task<UserResponse?> GetCurrentUserInfo()
+        [HttpGet(ApiRoutes.User.CurrentUserInfo)]
+        public Task<UserResponse?> CurrentUserInfo()
         {
-            return UserService.GeturrentUserAsync();
+            return UserService.CurrentUserAsync();
         }
     }
 }

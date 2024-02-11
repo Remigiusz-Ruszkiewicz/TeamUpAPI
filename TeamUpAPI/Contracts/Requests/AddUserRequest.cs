@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using TeamUpAPI.Models;
+﻿using TeamUpAPI.Models;
 
 namespace TeamUpAPI.Contracts.Requests
 {

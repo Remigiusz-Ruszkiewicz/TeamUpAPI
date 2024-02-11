@@ -1,33 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace TeamUpAPI.Contracts
+﻿namespace TeamUpAPI.Contracts
 {
     public static class ApiRoutes
     {
-        public const string Base = "api/v1/";
+        private const string Base = "api/v1/";
 
         public static class User
         {
             public const string AddUser = Base + "User";
 
-            public const string GetAllUsers = Base + "User";
+            public const string AllUsers = Base + "User";
 
-            public const string GetUserById = Base + "User/{id}";
+            public const string UserById = Base + "User/{id}";
 
             public const string UpdateUser = Base + "User";
 
             public const string DeleteUser = Base + "User";
 
-            public const string GetCurrentUserInfo = Base + "User/currentUser";
+            public const string CurrentUserInfo = Base + "User/currentUser";
 
-            public const string GetRecomendedUsers = Base + "User/Recomended";
+            public const string RecommendedUsers = Base + "User/Recommended";
 
-            //public const string GetRecomendedUsersByGame = Base + "User/Recomended/{gameId}";
+            //public const string GetRecommendedUsersByGame = Base + "User/Recommended/{gameId}";
 
-            public const string GetUserFriends = Base + "User/Friends";
+            public const string UserFriends = Base + "User/Friends";
 
             public const string AddToUserFriends = Base + "User/Friends";
 
@@ -42,13 +37,13 @@ namespace TeamUpAPI.Contracts
         }
         public static class Game
         {
-            public const string GetAllGames = Base + "Game";
-            public const string GetGameById = Base + "Game/{id}";
-            public const string GetCurrentUserGamesList = Base + "Game/Games";
+            public const string AllGames = Base + "Game";
+            public const string GameById = Base + "Game/{id}";
+            public const string CurrentUserGamesList = Base + "Game/Games";
             public const string AddToUserGames = Base + "Game/Games";
             public const string DeleteFromUserGames = Base + "Game/Games";
-            public const string GetAllCategories = Base + "Game/Categories";
-            public const string GetGamesByCategory = Base + "Game/Categories/{category}";
+            public const string AllCategories = Base + "Game/Categories";
+            public const string GamesByCategory = Base + "Game/Categories/{category}";
         }
     }
 }

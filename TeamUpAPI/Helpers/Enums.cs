@@ -24,7 +24,7 @@
             BadRequest = 400,
             NotFound = 404,
             Error = 500,
-            DBConnectionFailed = 503
+            DbConnectionFailed = 503
         }
     }
 }

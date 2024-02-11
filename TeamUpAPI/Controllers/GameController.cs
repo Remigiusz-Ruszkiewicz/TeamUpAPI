@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TeamUpAPI.Contracts;
-using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Helpers;
 using TeamUpAPI.Models;
 using TeamUpAPI.Services;
@@ -17,6 +13,7 @@ namespace TeamUpAPI.Controllers
     /// Manages game-related operations, including retrieving game information, managing user game lists, and handling game categories.
     /// Requires authorization for most operations to ensure user data privacy and integrity.
     /// </summary>
+    [EnableRateLimiting("fixed")]
     [ApiVersion("1.0")]
     [ApiController, Authorize]
     public class GameController : Controller
@@ -37,48 +34,48 @@ namespace TeamUpAPI.Controllers
         /// </summary>
         /// <param name="id">The unique identifier of the game to retrieve.</param>
         /// <returns>An IActionResult containing the game details if found; otherwise, NotFound.</returns>
-        [HttpGet(ApiRoutes.Game.GetGameById)]
-        public async Task<IActionResult> GetGameByIdAsync([FromRoute] Guid id)
+        [HttpGet(ApiRoutes.Game.GameById)]
+        public async Task<IActionResult> GameByIdAsync([FromRoute] Guid id)
         {
-            return Ok(await GameService.GetGameByIdAsync(id));
+            return Ok(await GameService.GameByIdAsync(id));
         }
         /// <summary>
         /// Retrieves a list of all games available in the application.
         /// </summary>
         /// <returns>An IActionResult containing a list of all games.</returns>
-        [HttpGet(ApiRoutes.Game.GetAllGames)]
-        public async Task<IActionResult> GetAllGames()
+        [HttpGet(ApiRoutes.Game.AllGames)]
+        public async Task<IActionResult> AllGames()
         {
-            return Ok(await GameService.GetGamesAsync());
+            return Ok(await GameService.GamesAsync());
         }
         /// <summary>
         /// Retrieves a list of all game categories defined within the application.
         /// </summary>
         /// <returns>An IActionResult containing a list of game categories.</returns>
         [Authorize]
-        [HttpGet(ApiRoutes.Game.GetAllCategories)]
-        public IActionResult GetAllCategories()
+        [HttpGet(ApiRoutes.Game.AllCategories)]
+        public IActionResult AllCategories()
         {
-            return Ok(GameService.GetGameCategories());
+            return Ok(GameService.GameCategories());
         }
         /// <summary>
         /// Retrieves a list of games filtered by a specific category.
         /// </summary>
         /// <param name="category">The category to filter games by.</param>
         /// <returns>A collection of games that belong to the specified category.</returns>
-        [HttpGet(ApiRoutes.Game.GetGamesByCategory)]
-        public async Task<ICollection<Game>> GetGamesByCategoryAsync([FromRoute] Enums.GameCategories category)
+        [HttpGet(ApiRoutes.Game.GamesByCategory)]
+        public async Task<ICollection<Game>> GamesByCategoryAsync([FromRoute] Enums.GameCategories category)
         {
-            return (await GameService.GetGamesByCategoryAsync(category)).ToList();
+            return (await GameService.GamesByCategoryAsync(category)).ToList();
         }
         /// <summary>
         /// Retrieves a list of games associated with the current authenticated user's account.
         /// </summary>
         /// <returns>A Task representing an asynchronous operation containing a collection of games.</returns>
-        [HttpGet(ApiRoutes.Game.GetCurrentUserGamesList)]
-        public Task<ICollection<Game>> GetCurrentUserGamesList()
+        [HttpGet(ApiRoutes.Game.CurrentUserGamesList)]
+        public Task<ICollection<Game>> CurrentUserGamesList()
         {
-            return GameService.GetCurrentUserGamesListAsync();
+            return GameService.CurrentUserGamesListAsync();
         }
         /// <summary>
         /// Adds a list of games to the current authenticated user's game collection.

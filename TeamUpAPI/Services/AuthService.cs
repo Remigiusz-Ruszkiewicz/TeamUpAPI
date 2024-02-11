@@ -1,13 +1,8 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using TeamUpAPI.Contracts.Requests;
 using TeamUpAPI.Contracts.Responses;
-using TeamUpAPI.Data;
 using TeamUpAPI.Models;
-using BCrypt.Net;
 using Microsoft.AspNetCore.Identity;
 using NLog;
 
@@ -15,14 +10,13 @@ namespace TeamUpAPI.Services
 {
     public class AuthService : IAuthService
     {
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        public AuthService(DataContext dbcontext, UserManager<User> userManager, SignInManager<User> signInManager)
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        public AuthService(UserManager<User> userManager, SignInManager<User> signInManager)
         {
-            Dbcontext = dbcontext;
             _userManager = userManager;
             _signInManager = signInManager;
         }
-        public DataContext Dbcontext { get; }
+
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private const int ExpirationMinutes = 600;
@@ -34,9 +28,9 @@ namespace TeamUpAPI.Services
                 audience: ConfigurationManager.AppSetting["JWT:ValidAudience"],
                 claims: new List<Claim>
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user?.Id),
-                    new Claim(ClaimTypes.Name, user?.UserName),
-                    new Claim(ClaimTypes.Email, user?.Email)
+                    new(ClaimTypes.NameIdentifier, user?.Id),
+                    new(ClaimTypes.Name, user.UserName),
+                    new(ClaimTypes.Email, user.Email)
                 },
                 expires: DateTime.UtcNow.AddMinutes(ExpirationMinutes)
                ));
@@ -53,40 +47,31 @@ namespace TeamUpAPI.Services
                     var result = await _signInManager.PasswordSignInAsync(user, authRequest.Password, false, false);
                     if (result.Succeeded)
                     {
-                        return new AuthOperationResponse()
+                        return new AuthOperationResponse
                         {
-                            Result = true,
+                            Result = true
                         };
                     }
-                    else
-                    {
-                        _logger.Info("Login Failed");
-                        return new AuthOperationResponse()
-                        {
-                            Result = false,
-                            Errors = new List<string>() { "Login Failed" }
-                        };
-                    }
-                }
-                else
-                {
-                    _logger.Info("Password is incorrect");
-                    return new AuthOperationResponse()
+                    Logger.Info("Login Failed");
+                    return new AuthOperationResponse
                     {
                         Result = false,
-                        Errors = new List<string>() { "Password is incorrect" }
+                        Errors = new List<string> { "Login Failed" }
                     };
                 }
-            }
-            else
-            {
-                _logger.Info("Can not find user with this mail");
-                return new AuthOperationResponse()
+                Logger.Info("Password is incorrect");
+                return new AuthOperationResponse
                 {
                     Result = false,
-                    Errors = new List<string>() { "Can not find user with this mail" }
+                    Errors = new List<string> { "Password is incorrect" }
                 };
             }
+            Logger.Info("Can not find user with this mail");
+            return new AuthOperationResponse
+            {
+                Result = false,
+                Errors = new List<string> { "Can not find user with this mail" }
+            };
         }
         public async Task<AuthOperationResponse> RegisterAsync(AddUserRequest userRequest)
         {
@@ -97,19 +82,14 @@ namespace TeamUpAPI.Services
                 GamesList = userRequest.GamesList,
                 FriendsList = userRequest.FriendsList,
                 EmailConfirmed = true,
-                PhoneNumberConfirmed = true,
+                PhoneNumberConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, userRequest.Password);
-
-            if (!result.Succeeded)
-            {
-                throw new Exception("User could not be created");
-            }
-            return new AuthOperationResponse()
+            return new AuthOperationResponse
             {
                 Result = result.Succeeded,
-                Errors = result.Errors.Select((error) => error.Description).ToList()
+                Errors = result.Errors.Select(error => error.Description).ToList()
             };
         }
 
@@ -130,22 +110,19 @@ namespace TeamUpAPI.Services
                             Username = user.UserName,
                             UserId = user.Id,
                             Email = user.Email,
-                            Token = accessToken,
+                            Token = accessToken
                         };
                     }
-                    else
-                    {
-                        _logger.Info("Login Failed");
-                    }
+                    Logger.Info("Login Failed");
                 }
                 else
                 {
-                    _logger.Info("Password is incorrect");
+                    Logger.Info("Password is incorrect");
                 }
             }
             else
             {
-                _logger.Info("Can not find user with this mail");
+                Logger.Info("Can not find user with this mail");
             }
             return null;
         }
@@ -159,7 +136,7 @@ namespace TeamUpAPI.Services
                 GamesList = userRequest.GamesList,
                 FriendsList = userRequest.FriendsList,
                 EmailConfirmed = true,
-                PhoneNumberConfirmed = true,
+                PhoneNumberConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, userRequest.Password);
@@ -173,7 +150,7 @@ namespace TeamUpAPI.Services
                 Username = user.UserName,
                 Email = user.Email,
                 UserId = user.Id,
-                Token = "",
+                Token = ""
             };
         }
     }

@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Identity;
 
 namespace TeamUpAPI.Models
 {
     /// <summary>
     /// A user.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class User : IdentityUser
     {
         /// <summary>

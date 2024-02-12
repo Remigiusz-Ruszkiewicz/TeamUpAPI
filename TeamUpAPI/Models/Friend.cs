@@ -1,5 +1,8 @@
-﻿namespace TeamUpAPI.Models
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace TeamUpAPI.Models
 {
+    [ExcludeFromCodeCoverage]
     public class Friend
     {
         public required string Id { get; set; }

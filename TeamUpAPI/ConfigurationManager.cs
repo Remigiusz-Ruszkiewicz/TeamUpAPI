@@ -1,5 +1,8 @@
-﻿namespace TeamUpAPI
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace TeamUpAPI
 {
+    [ExcludeFromCodeCoverage]
     internal static class ConfigurationManager
     {
         public static IConfiguration AppSetting
